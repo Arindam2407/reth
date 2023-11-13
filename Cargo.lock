@@ -6244,7 +6244,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
- "toml 0.8.6",
+ "toml 0.8.8",
  "tracing",
  "triehash",
  "url",
