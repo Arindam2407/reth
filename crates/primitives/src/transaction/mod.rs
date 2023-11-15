@@ -11,8 +11,7 @@ use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use reth_codecs::{add_arbitrary_tests, derive_arbitrary, Compact};
 use serde::{Deserialize, Serialize};
-use std::{mem, thread};
-use tokio::sync::mpsc;
+use std::{mem, thread, sync::mpsc};
 
 pub use access_list::{AccessList, AccessListItem};
 pub use eip1559::TxEip1559;
@@ -866,7 +865,7 @@ impl TransactionSignedNoHash {
                     } else {
                         iter.by_ref().take(chunk_size).collect()
                     };
-                    let (recovered_senders_tx, recovered_senders_rx) = mpsc::unbounded_channel();
+                    let (recovered_senders_tx, recovered_senders_rx) = mpsc::channel();
                     channels.push(recovered_senders_rx);
                     // Spawn the sender recovery task onto the global rayon pool
                     // This task will send the results through the channel after it recovered
@@ -1066,7 +1065,7 @@ impl TransactionSigned {
                     } else {
                         iter.by_ref().take(chunk_size).collect()
                     };
-                    let (recovered_senders_tx, recovered_senders_rx) = mpsc::unbounded_channel();
+                    let (recovered_senders_tx, recovered_senders_rx) = mpsc::channel();
                     channels.push(recovered_senders_rx);
                     // Spawn the sender recovery task onto the global rayon pool
                     // This task will send the results through the channel after it recovered
