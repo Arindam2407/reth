@@ -4,11 +4,13 @@ use dashmap::DashMap;
 use reth_interfaces::RethResult;
 use reth_nippy_jar::NippyJar;
 use reth_primitives::{
-    snapshot::BLOCKS_PER_SNAPSHOT, Address, BlockHash, BlockHashOrNumber, BlockNumber, ChainInfo,
-    Header, SealedHeader, SnapshotSegment, TransactionMeta, TransactionSigned,
-    TransactionSignedNoHash, TxHash, TxNumber, B256, U256,
+    snapshot::{HighestSnapshots, BLOCKS_PER_SNAPSHOT},
+    Address, BlockHash, BlockHashOrNumber, BlockNumber, ChainInfo, Header, SealedHeader,
+    SnapshotSegment, TransactionMeta, TransactionSigned, TransactionSignedNoHash, TxHash, TxNumber,
+    B256, U256,
 };
 use std::{ops::RangeBounds, path::PathBuf};
+use tokio::sync::watch;
 
 /// SnapshotProvider
 #[derive(Debug, Default)]
@@ -16,9 +18,27 @@ pub struct SnapshotProvider {
     /// Maintains a map which allows for concurrent access to different `NippyJars`, over different
     /// segments and ranges.
     map: DashMap<(BlockNumber, SnapshotSegment), LoadedJar>,
+    /// Tracks the highest snapshot of every segment.
+    highest_tracker: Option<watch::Receiver<Option<HighestSnapshots>>>,
+    /// Directory where snapshots are located
+    path: PathBuf,
 }
 
 impl SnapshotProvider {
+    /// Creates a new [`SnapshotProvider`].
+    pub fn new(path: PathBuf) -> Self {
+        Self { map: Default::default(), highest_tracker: None, path }
+    }
+
+    /// Adds a highest snapshot tracker to the provider
+    pub fn with_highest_tracker(
+        mut self,
+        highest_tracker: Option<watch::Receiver<Option<HighestSnapshots>>>,
+    ) -> Self {
+        self.highest_tracker = highest_tracker;
+        self
+    }
+
     /// Gets the provider of the requested segment and range.
     pub fn get_segment_provider(
         &self,
@@ -37,12 +57,19 @@ impl SnapshotProvider {
         if let Some(path) = &path {
             self.map.insert(key, LoadedJar::new(NippyJar::load(path)?)?);
         } else {
-            path = Some(segment.filename(
+            path = Some(self.path.join(segment.filename(
                 &((snapshot * BLOCKS_PER_SNAPSHOT)..=((snapshot + 1) * BLOCKS_PER_SNAPSHOT - 1)),
-            ));
+            )));
         }
 
         self.get_segment_provider(segment, block, path)
+    }
+
+    /// Gets the highest snapshot if it exists for a snapshot segment.
+    pub fn get_highest_snapshot(&self, segment: SnapshotSegment) -> Option<BlockNumber> {
+        self.highest_tracker
+            .as_ref()
+            .and_then(|tracker| tracker.borrow().and_then(|highest| highest.highest(segment)))
     }
 }
 
