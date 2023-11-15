@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use reth_codecs::{add_arbitrary_tests, derive_arbitrary, Compact};
 use serde::{Deserialize, Serialize};
-use std::{mem, thread, sync::mpsc};
+use std::{mem, sync::mpsc, thread};
 
 pub use access_list::{AccessList, AccessListItem};
 pub use eip1559::TxEip1559;
@@ -879,8 +879,8 @@ impl TransactionSignedNoHash {
                 })
             });
             thread::spawn(move || {
-                for mut channel in channels {
-                    while let Some(recovered) = channel.blocking_recv() {
+                for channel in channels {
+                    while let Ok(recovered) = channel.recv() {
                         match recovered {
                             Some(signer) => {
                                 recovered_signers.push(signer);
@@ -1079,8 +1079,8 @@ impl TransactionSigned {
                 })
             });
             thread::spawn(move || {
-                for mut channel in channels {
-                    while let Some(recovered) = channel.blocking_recv() {
+                for channel in channels {
+                    while let Ok(recovered) = channel.recv() {
                         match recovered {
                             Some(signer) => {
                                 recovered_signers.push(signer);
