@@ -407,7 +407,7 @@ mod tests {
     };
     use reth_provider::{
         test_utils::{create_test_provider_factory_with_chain_spec, TestExecutorFactory},
-        BundleStateWithReceipts, ProviderFactory,
+        BundleStateWithReceipts,
     };
     use reth_stages::{test_utils::TestStages, ExecOutput, StageError};
     use reth_tasks::TokioTaskExecutor;

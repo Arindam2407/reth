@@ -57,7 +57,7 @@ assert_matches.workspace = true
 rand.workspace = true
 
 [features]
-test-utils = ["alloy-rlp"]
+test-utils = ["alloy-rlp", "reth-db/test-utils"]
 optimism = [
   "reth-primitives/optimism",
   "reth-ethereum-forks/optimism",
