@@ -41,11 +41,11 @@ use discv5::{
 use enr::{Enr, EnrBuilder};
 use parking_lot::Mutex;
 use proto::{EnrRequest, EnrResponse, EnrWrapper};
+use reth_ethereum_forks::ForkId;
 use reth_primitives::{
     bytes::{Bytes, BytesMut},
     hex, PeerId, B256,
 };
-use reth_ethereum_forks::ForkId;
 use secp256k1::SecretKey;
 use std::{
     cell::RefCell,
@@ -2129,8 +2129,8 @@ mod tests {
     use crate::test_utils::{create_discv4, create_discv4_with_config, rng_endpoint, rng_record};
     use alloy_rlp::{Decodable, Encodable};
     use rand::{thread_rng, Rng};
-    use reth_primitives::{hex, mainnet_nodes};
     use reth_ethereum_forks::ForkHash;
+    use reth_primitives::{hex, mainnet_nodes};
     use std::{future::poll_fn, net::Ipv4Addr};
 
     #[tokio::test]
