@@ -6242,6 +6242,7 @@ dependencies = [
  "bytes",
  "c-kzg",
  "clap",
+ "crc",
  "criterion",
  "derive_more",
  "ethers-core",

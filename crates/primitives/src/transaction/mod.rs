@@ -8,10 +8,10 @@ use alloy_rlp::{
 use bytes::{Buf, BytesMut};
 use derive_more::{AsRef, Deref};
 use once_cell::sync::Lazy;
-use rayon::prelude::*;
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use reth_codecs::{add_arbitrary_tests, derive_arbitrary, Compact};
 use serde::{Deserialize, Serialize};
-use std::{mem, sync::mpsc, thread};
+use std::mem;
 
 pub use access_list::{AccessList, AccessListItem};
 pub use eip1559::TxEip1559;
@@ -849,53 +849,7 @@ impl TransactionSignedNoHash {
         if num_txes < *PARALLEL_SENDER_RECOVERY_THRESHOLD {
             txes.into_iter().map(|tx| tx.recover_signer()).collect()
         } else {
-            let mut recovered_signers: Vec<Address> = Vec::new();
-            let mut channels = Vec::new();
-            rayon::scope(|s| {
-                let (chunk_size, chunks) = if num_txes < 16 {
-                    (num_txes, 2)
-                } else {
-                    let chunk_size = num_txes / (num_txes / 16);
-                    let chunks = num_txes / chunk_size + 1;
-                    (chunk_size, chunks)
-                };
-                let mut iter = txes.into_iter();
-                (0..chunks).for_each(|i| {
-                    let chunk: Vec<&TransactionSignedNoHash> = if i == chunks - 1 {
-                        iter.by_ref().take(num_txes % chunk_size).collect()
-                    } else {
-                        iter.by_ref().take(chunk_size).collect()
-                    };
-                    let (recovered_senders_tx, recovered_senders_rx) = mpsc::channel();
-                    channels.push(recovered_senders_rx);
-                    // Spawn the sender recovery task onto the global rayon pool
-                    // This task will send the results through the channel after it recovered
-                    // the senders.
-                    s.spawn(move |_| {
-                        for tx in chunk {
-                            let recovery_result = tx.recover_signer();
-                            let _ = recovered_senders_tx.send(recovery_result);
-                        }
-                    });
-                })
-            });
-            thread::spawn(move || {
-                for channel in channels {
-                    while let Ok(recovered) = channel.recv() {
-                        match recovered {
-                            Some(signer) => {
-                                recovered_signers.push(signer);
-                            }
-                            None => {
-                                return None;
-                            }
-                        }
-                    }
-                }
-                Some(recovered_signers)
-            })
-            .join()
-            .unwrap()
+            txes.into_par_iter().map(|tx| tx.recover_signer()).collect()
         }
     }
 }
@@ -1049,53 +1003,7 @@ impl TransactionSigned {
         if num_txes < *PARALLEL_SENDER_RECOVERY_THRESHOLD {
             txes.into_iter().map(|tx| tx.recover_signer()).collect()
         } else {
-            let mut recovered_signers: Vec<Address> = Vec::new();
-            let mut channels = Vec::new();
-            rayon::scope(|s| {
-                let (chunk_size, chunks) = if num_txes < 16 {
-                    (num_txes, 2)
-                } else {
-                    let chunk_size = num_txes / (num_txes / 16);
-                    let chunks = num_txes / chunk_size + 1;
-                    (chunk_size, chunks)
-                };
-                let mut iter = txes.into_iter();
-                (0..chunks).for_each(|i| {
-                    let chunk: Vec<&TransactionSigned> = if i == chunks - 1 {
-                        iter.by_ref().take(num_txes % chunk_size).collect()
-                    } else {
-                        iter.by_ref().take(chunk_size).collect()
-                    };
-                    let (recovered_senders_tx, recovered_senders_rx) = mpsc::channel();
-                    channels.push(recovered_senders_rx);
-                    // Spawn the sender recovery task onto the global rayon pool
-                    // This task will send the results through the channel after it recovered
-                    // the senders.
-                    s.spawn(move |_| {
-                        for tx in chunk {
-                            let recovery_result = tx.recover_signer();
-                            let _ = recovered_senders_tx.send(recovery_result);
-                        }
-                    });
-                })
-            });
-            thread::spawn(move || {
-                for channel in channels {
-                    while let Ok(recovered) = channel.recv() {
-                        match recovered {
-                            Some(signer) => {
-                                recovered_signers.push(signer);
-                            }
-                            None => {
-                                return None;
-                            }
-                        }
-                    }
-                }
-                Some(recovered_signers)
-            })
-            .join()
-            .unwrap()
+            txes.into_par_iter().map(|tx| tx.recover_signer()).collect()
         }
     }
 
@@ -1609,9 +1517,8 @@ mod tests {
     use alloy_primitives::{b256, bytes};
     use alloy_rlp::{Decodable, Encodable, Error as RlpError};
     use bytes::BytesMut;
-    use rayon::prelude::*;
     use secp256k1::{KeyPair, Secp256k1};
-    use std::{fs::File, io::Write, str::FromStr, time::Instant};
+    use std::str::FromStr;
 
     #[test]
     fn test_decode_empty_typed_tx() {
@@ -1880,38 +1787,6 @@ mod tests {
             let seq_senders = txes.iter().map(|tx| tx.recover_signer()).collect::<Option<Vec<_>>>().unwrap();
 
             assert_eq!(parallel_senders, seq_senders);
-        }
-
-        #[test]
-        fn benchmark_chunks_parallel_sender_recovery_100000(txes in proptest::collection::vec(proptest::prelude::any::<Transaction>(), *PARALLEL_SENDER_RECOVERY_THRESHOLD * 20000)) {
-            let mut rng =rand::thread_rng();
-            let secp = Secp256k1::new();
-            let txes: Vec<TransactionSigned> = txes.into_iter().map(|mut tx| {
-                 if let Some(chain_id) = tx.chain_id() {
-                    // Otherwise we might overflow when calculating `v` on `recalculate_hash`
-                    tx.set_chain_id(chain_id % (u64::MAX / 2 - 36));
-                }
-
-                let key_pair = KeyPair::new(&secp, &mut rng);
-
-                let signature =
-                    sign_message(B256::from_slice(&key_pair.secret_bytes()[..]), tx.signature_hash()).unwrap();
-
-                TransactionSigned::from_transaction_and_signature(tx, signature)
-            }).collect();
-
-            let mut file = File::create("benchmark.txt")?;
-
-            let start_chunk = Instant::now();
-            let _par_chunk_senders = TransactionSigned::recover_signers(&txes, txes.len());
-            let elapsed_chunk = start_chunk.elapsed();
-
-            let start = Instant::now();
-            let _par_senders = txes.into_par_iter().map(|tx| tx.recover_signer()).collect::<Option<Vec<_>>>();
-            let elapsed = start.elapsed();
-
-            write!(file, "Time taken for parallel recovery of 100000 addresses: {:.2?} (with chunks) and {:.2?} (without chunks)", elapsed_chunk, elapsed)?;
-
         }
     }
 }
