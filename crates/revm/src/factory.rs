@@ -3,7 +3,7 @@ use crate::{
     processor::EVMProcessor,
     stack::{InspectorStack, InspectorStackConfig},
 };
-use reth_primitives::ChainSpec;
+use reth_ethereum_forks::ChainSpec;
 use reth_provider::{ExecutorFactory, PrunableBlockExecutor, StateProvider};
 use std::sync::Arc;
 

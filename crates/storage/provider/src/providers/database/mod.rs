@@ -10,14 +10,15 @@ use crate::{
     TransactionsProvider, WithdrawalsProvider,
 };
 use reth_db::{database::Database, init_db, models::StoredBlockBodyIndices, DatabaseEnv};
+use reth_ethereum_forks::{ChainInfo, ChainSpec};
 use reth_interfaces::{db::LogLevel, provider::ProviderResult, RethError, RethResult};
 use reth_primitives::{
     snapshot::HighestSnapshots,
     stage::{StageCheckpoint, StageId},
-    Address, Block, BlockHash, BlockHashOrNumber, BlockNumber, BlockWithSenders, ChainInfo,
-    ChainSpec, Header, PruneCheckpoint, PruneSegment, Receipt, SealedBlock, SealedBlockWithSenders,
-    SealedHeader, TransactionMeta, TransactionSigned, TransactionSignedNoHash, TxHash, TxNumber,
-    Withdrawal, B256, U256,
+    Address, Block, BlockHash, BlockHashOrNumber, BlockNumber, BlockWithSenders, Header,
+    PruneCheckpoint, PruneSegment, Receipt, SealedBlock, SealedBlockWithSenders, SealedHeader,
+    TransactionMeta, TransactionSigned, TransactionSignedNoHash, TxHash, TxNumber, Withdrawal,
+    B256, U256,
 };
 use revm::primitives::{BlockEnv, CfgEnv};
 use std::{
@@ -497,6 +498,7 @@ mod tests {
     use assert_matches::assert_matches;
     use rand::Rng;
     use reth_db::{tables, test_utils::ERROR_TEMPDIR, transaction::DbTxMut, DatabaseEnv};
+    use reth_ethereum_forks::ChainSpecBuilder;
     use reth_interfaces::{
         provider::ProviderError,
         test_utils::{
@@ -505,9 +507,7 @@ mod tests {
         },
         RethError,
     };
-    use reth_primitives::{
-        hex_literal::hex, ChainSpecBuilder, PruneMode, PruneModes, SealedBlock, TxNumber, B256,
-    };
+    use reth_primitives::{hex_literal::hex, PruneMode, PruneModes, SealedBlock, TxNumber, B256};
     use std::{ops::RangeInclusive, sync::Arc};
     use tokio::sync::watch;
 

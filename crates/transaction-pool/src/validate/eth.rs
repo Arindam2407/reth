@@ -8,6 +8,7 @@ use crate::{
     EthBlobTransactionSidecar, EthPoolTransaction, PoolTransaction, TransactionValidationOutcome,
     TransactionValidationTaskExecutor, TransactionValidator,
 };
+use reth_ethereum_forks::ChainSpec;
 use reth_primitives::{
     constants::{
         eip4844::{MAINNET_KZG_TRUSTED_SETUP, MAX_BLOBS_PER_BLOCK},
@@ -15,8 +16,8 @@ use reth_primitives::{
     },
     kzg::KzgSettings,
     revm::compat::calculate_intrinsic_gas_after_merge,
-    ChainSpec, GotExpected, InvalidTransactionError, SealedBlock, EIP1559_TX_TYPE_ID,
-    EIP2930_TX_TYPE_ID, EIP4844_TX_TYPE_ID, LEGACY_TX_TYPE_ID,
+    GotExpected, InvalidTransactionError, SealedBlock, EIP1559_TX_TYPE_ID, EIP2930_TX_TYPE_ID,
+    EIP4844_TX_TYPE_ID, LEGACY_TX_TYPE_ID,
 };
 use reth_provider::{AccountReader, BlockReaderIdExt, StateProviderFactory};
 use reth_tasks::TaskSpawner;
@@ -761,8 +762,9 @@ mod tests {
             blobstore::InMemoryBlobStore, CoinbaseTipOrdering, EthPooledTransaction, Pool,
             TransactionPool,
         };
+        use reth_ethereum_forks::MAINNET;
         use reth_primitives::{
-            hex, FromRecoveredPooledTransaction, PooledTransactionsElement, MAINNET, U256,
+            hex, FromRecoveredPooledTransaction, PooledTransactionsElement, U256,
         };
         use reth_provider::test_utils::{ExtendedAccount, MockEthProvider};
 

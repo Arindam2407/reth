@@ -4,10 +4,11 @@
 
 #![deny(missing_docs)]
 
-use crate::{hex, BlockNumber, Head, B256};
+use crate::{hex, BlockNumber, B256};
 use alloy_rlp::*;
 use crc::*;
 use reth_codecs::derive_arbitrary;
+use reth_primitives::Head;
 use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
@@ -379,7 +380,8 @@ impl Cache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{hex_literal::hex, revm_primitives::b256};
+    use crate::hex_literal::hex;
+    use reth_primitives::revm_primitives::b256;
 
     const GENESIS_HASH: B256 =
         b256!("d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");

@@ -10,10 +10,10 @@ use crate::{
 };
 use clap::Parser;
 use reth_db::{database::Database, open_db, tables, transaction::DbTxMut, DatabaseEnv};
-use reth_primitives::{fs, stage::StageId, ChainSpec};
+use reth_ethereum_forks::ChainSpec;
+use reth_primitives::{fs, stage::StageId};
 use std::sync::Arc;
 use tracing::info;
-
 /// `reth drop-stage` command
 #[derive(Debug, Parser)]
 pub struct Command {

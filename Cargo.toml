@@ -21,6 +21,7 @@ members = [
     "crates/payload/basic/",
     "crates/payload/builder/",
     "crates/primitives/",
+    "crates/ethereum-forks/",
     "crates/prune/",
     "crates/revm/",
     "crates/revm/revm-inspectors/",
@@ -102,6 +103,7 @@ reth-dns-discovery = { path = "crates/net/dns" }
 reth-downloaders = { path = "crates/net/downloaders" }
 reth-ecies = { path = "crates/net/ecies" }
 reth-eth-wire = { path = "crates/net/eth-wire" }
+reth-ethereum-forks = { path = "crates/ethereum-forks" }
 reth-interfaces = { path = "crates/interfaces" }
 reth-ipc = { path = "crates/rpc/ipc" }
 reth-libmdbx = { path = "crates/storage/libmdbx-rs" }

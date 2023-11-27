@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{ChainSpec, ForkCondition, ForkFilter, ForkId};
+
 use std::{fmt::Display, str::FromStr};
 
 /// The name of an Ethereum hardfork.
@@ -110,7 +111,8 @@ impl Display for Hardfork {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Chain, Genesis};
+    use crate::Chain;
+    use reth_primitives::Genesis;
     use std::collections::BTreeMap;
 
     #[test]

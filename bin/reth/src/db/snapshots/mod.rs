@@ -1,10 +1,11 @@
 use clap::Parser;
 use itertools::Itertools;
 use reth_db::{open_db_read_only, DatabaseEnv};
+use reth_ethereum_forks::ChainSpec;
 use reth_interfaces::db::LogLevel;
 use reth_primitives::{
     snapshot::{Compression, InclusionFilter, PerfectHashingFunction},
-    BlockNumber, ChainSpec, SnapshotSegment,
+    BlockNumber, SnapshotSegment,
 };
 use reth_provider::ProviderFactory;
 use std::{ops::RangeInclusive, path::Path, sync::Arc};
