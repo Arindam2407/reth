@@ -9,8 +9,10 @@ pub use jsonrpsee::server::ServerBuilder;
 use jsonrpsee::{
     http_client::HeaderMap,
     server::{RpcModule, ServerHandle},
+    Methods,
 };
 use reth_network_api::{NetworkInfo, Peers};
+use reth_node_api::EngineTypes;
 use reth_provider::{
     BlockReaderIdExt, CanonStateSubscriptions, ChainSpecProvider, EvmEnvProvider, HeaderProvider,
     ReceiptProviderIdExt, StateProviderFactory,
@@ -57,7 +59,6 @@ where
     Network: NetworkInfo + Peers + Clone + 'static,
     Tasks: TaskSpawner + Clone + 'static,
     EngineApi: EngineApiServer,
-    Events: CanonStateSubscriptions + Clone + 'static,
 {
     // spawn a new cache task
     let eth_cache =
@@ -107,7 +108,7 @@ where
 }
 
 /// Configure and launch a _standalone_ auth server with existing EthApi implementation.
-pub async fn launch_with_eth_api<Provider, Pool, Network, EngineApi, Events>(
+pub async fn launch_with_eth_api<Provider, Pool, Network, EngineApi>(
     eth_api: EthApi<Provider, Pool, Network>,
     eth_filter: EthFilter<Provider, Pool>,
     engine_api: EngineApi,
@@ -126,7 +127,6 @@ where
     Pool: TransactionPool + Clone + 'static,
     Network: NetworkInfo + Peers + Clone + 'static,
     EngineApi: EngineApiServer,
-    Events: CanonStateSubscriptions + Clone + 'static,
 {
     // Configure the module and start the server.
     let mut module = RpcModule::new(());
@@ -267,18 +267,19 @@ impl AuthServerConfigBuilder {
 }
 
 /// Holds installed modules for the auth server.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AuthRpcModule {
     pub(crate) inner: RpcModule<()>,
 }
 
-// === impl TransportRpcModules ===
+// === impl AuthRpcModule ===
 
 impl AuthRpcModule {
     /// Create a new `AuthRpcModule` with the given `engine_api`.
-    pub fn new<EngineApi>(engine: EngineApi) -> Self
+    pub fn new<EngineApi, EngineT>(engine: EngineApi) -> Self
     where
-        EngineApi: EngineApiServer,
+        EngineT: EngineTypes,
+        EngineApi: EngineApiServer<EngineT>,
     {
         let mut module = RpcModule::new(());
         module.merge(engine.into_rpc()).expect("No conflicting methods");
@@ -288,6 +289,16 @@ impl AuthRpcModule {
     /// Get a reference to the inner `RpcModule`.
     pub fn module_mut(&mut self) -> &mut RpcModule<()> {
         &mut self.inner
+    }
+
+    /// Merge the given [Methods] in the configured authenticated methods.
+    ///
+    /// Fails if any of the methods in other is present already.
+    pub fn merge_auth_methods(
+        &mut self,
+        other: impl Into<Methods>,
+    ) -> Result<bool, jsonrpsee::core::error::Error> {
+        self.module_mut().merge(other.into()).map(|_| true)
     }
 
     /// Convenience function for starting a server
