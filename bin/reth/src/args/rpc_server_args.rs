@@ -331,7 +331,8 @@ impl RpcServerArgs {
     }
 
     /// Create Engine API server.
-    pub async fn start_auth_server<Provider, Pool, Network, Tasks, EngineT>(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn start_auth_server<Provider, Pool, Network, Tasks, EngineT, Events>(
         &self,
         provider: Provider,
         pool: Pool,
@@ -339,6 +340,7 @@ impl RpcServerArgs {
         executor: Tasks,
         engine_api: EngineApi<Provider, EngineT>,
         jwt_secret: JwtSecret,
+        events: Events,
     ) -> Result<AuthServerHandle, RpcError>
     where
         Provider: BlockReaderIdExt
@@ -353,6 +355,7 @@ impl RpcServerArgs {
         Network: NetworkInfo + Peers + Clone + 'static,
         Tasks: TaskSpawner + Clone + 'static,
         EngineT: EngineTypes + 'static,
+        Events: CanonStateSubscriptions + Clone + 'static,
     {
         let socket_address = SocketAddr::new(self.auth_addr, self.auth_port);
 
@@ -364,6 +367,7 @@ impl RpcServerArgs {
             engine_api,
             socket_address,
             jwt_secret,
+            events,
         )
         .await
     }
